@@ -8,8 +8,8 @@ typedef enum {
     HEXADECIMAL,
 } Base;
 
-char* to_base(int number, int base);
-int to_decimal(const char* number, int base);
+char* to_base(float number, int base);
+float to_decimal(const char* number, int base);
 int get_base(int selection);
 
 #endif

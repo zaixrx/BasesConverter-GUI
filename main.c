@@ -2,21 +2,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "convert.h"
+
 #include "raylib.h"
 
 #define RAYGUI_IMPLEMENTATION
-#include "gui.h"
 #include "raygui.h"
+
+#include "gui.h"
 
 #define WINDOW_H 600
 #define WINDOW_W 800
 
 void Update();
 
+Text text = {
+    .base = { .id = 'o', .type = TXT },
+    .bounds = (Rectangle){ WINDOW_W * 0.5 - 75, WINDOW_H * 0.5 - 60, 150, 50 },
+    .content = ""
+};
+
 void handle_click(const GUI_Base** gui_elements, int gui_elements_count) {
     int from, to;
     const char* number = "";
-    Text* output;
 
     for (int i = 0; i < gui_elements_count; i++) {
         switch (gui_elements[i]->type) {
@@ -30,27 +37,25 @@ void handle_click(const GUI_Base** gui_elements, int gui_elements_count) {
                 InputField* input_field = (InputField*)gui_elements[i];
                 if (gui_elements[i]->id == 'i') number = input_field->content_buffer;
                 break;
-
-            case TXT:
-                if (gui_elements[i]->id == 'o') output = (Text*)gui_elements[i];
-                break;
         }
     }
 
-    int num = to_decimal(number, get_base(from));
-    output->content = to_base(num, get_base(to));
+    float num = to_decimal(number, get_base(from));
+    text.content = to_base(num, get_base(to));
 }
 
 int main(void) {
     InitWindow(WINDOW_W, WINDOW_H, "Mini Project");
     SetTargetFPS(60);
 
-    char* content_buffer = malloc(16 * sizeof(char));
+    char* content_buffer = (char*)calloc(10, sizeof(char));
     content_buffer[0] = '\0';
+
     Rectangle input_rect = (Rectangle){ WINDOW_W * 0.5 - 75, WINDOW_H * 0.5 - 25, 150, 50 };
     InputField input_field = { 
         .base = { .id = 'i', .type = INPUT_FIELD },
         .bounds = input_rect,
+        .characters_capacity = 16,
         .content_buffer = content_buffer,
         .characters_count = 0,
         .frames_passed_since_selected = 0,
@@ -77,13 +82,8 @@ int main(void) {
         .content = "Convert",
         .on_click = &handle_click
     };
-    Text text = {
-        .base = { .id = 'o', .type = TXT },
-        .bounds = (Rectangle){ WINDOW_W * 0.5 - 75, WINDOW_H * 0.5 - 60, 150, 50 },
-        .content = ""
-    };
 
-    GUI_Base* gui_elements[] = {
+    const GUI_Base* gui_elements[] = {
         (GUI_Base*)&input_field,
         (GUI_Base*)&dropdown_from,
         (GUI_Base*)&dropdown_to,
@@ -96,36 +96,37 @@ int main(void) {
     }
 
     CloseWindow();
+    free(input_field.content_buffer);
+    free(text.content);
 
     return EXIT_SUCCESS;
 }
 
 void Update(const GUI_Base** gui_elements, unsigned int elements_count) {
     BeginDrawing();
-    ClearBackground(WHITE);
+    ClearBackground(GetColor(0x161616FF));
 
     for (int i = 0; i < elements_count; i++) {
-        switch (gui_elements[i]->type)
-        {
+        switch (gui_elements[i]->type) {
         case BTN:
             Button* button = (Button*)gui_elements[i];
-            if (GuiButton(button->bounds, button->content))
+            if (DrawButton(button->bounds, button->content))
                 (*(button->on_click))(gui_elements, elements_count);
             break;
         
         case TXT:
             Text* text = (Text*)gui_elements[i];
-            DrawText(text->content, text->bounds.x, text->bounds.y, FONT_SIZE, GREEN);
+            DrawText(text->content, text->bounds.x, text->bounds.y, M_FONT_SIZE, GREEN);
             break;
         
         case INPUT_FIELD:
             InputField* input_field = (InputField*)gui_elements[i];
-            DrawInputField(input_field, BORDER_SIZE, FONT_SIZE);
+            DrawInputField(input_field);
             break;
 
         case DROPDOWN_MENU:
             DropdownMenu* dropdown = (DropdownMenu*)gui_elements[i];
-            if (GuiDropdownBox(dropdown->bounds, dropdown->content, (int*)&(dropdown->state), dropdown->is_selected))
+            if (DrawDropdown(dropdown->bounds, dropdown->content, (int*)&(dropdown->state), dropdown->is_selected))
                 dropdown->is_selected = !dropdown->is_selected;
             break;
         }
